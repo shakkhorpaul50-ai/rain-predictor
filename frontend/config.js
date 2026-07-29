@@ -1,1 +1,1 @@
-var API_BASE = "";
+var API_BASE = "https://rain-predictor-api.onrender.com";
