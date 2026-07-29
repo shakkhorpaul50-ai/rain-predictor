@@ -83,6 +83,6 @@ def generate_synthetic_dataset(n_samples=500, size=(128, 128), seed=42):
 
         rain_prob = 0.1 + 0.6 * coverage + 0.15 * (humid / 100) + 0.15 * (1 - temp / 40)
         rain_prob = np.clip(rain_prob, 0, 1)
-        labels.append(1 if rng.random() < rain_prob else 0)
+        labels.append(1 if rain_prob >= 0.5 else 0)
 
     return np.array(images), np.array(cloud_masks), weather_list, np.array(labels)
