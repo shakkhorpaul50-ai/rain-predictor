@@ -8,3 +8,4 @@ scikit-image>=0.20.0
 opencv-python>=4.7.0
 joblib>=1.4.0
 pillow>=10.1.0
+matplotlib>=3.6.0
