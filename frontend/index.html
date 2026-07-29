@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rain Prediction</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header>
+    <h1>Rain Prediction</h1>
+    <p>Upload a cloud image + weather data to predict rain</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Cloud Image</h2>
+      <div class="upload-area" id="uploadArea">
+        <div class="icon">☁️</div>
+        <p>Click or drag to upload a cloud/sky image</p>
+        <input type="file" id="imageInput" accept="image/*" />
+        <img id="preview" alt="Preview" />
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Weather Data</h2>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="temperature">Temperature (°C)</label>
+          <input type="number" id="temperature" value="25" step="0.1" />
+        </div>
+        <div class="form-group">
+          <label for="humidity">Humidity (%)</label>
+          <input type="number" id="humidity" value="65" min="0" max="100" />
+        </div>
+        <div class="form-group">
+          <label for="windSpeed">Wind Speed (km/h)</label>
+          <input type="number" id="windSpeed" value="10" step="0.1" min="0" />
+        </div>
+        <div class="form-group">
+          <label for="hour">Hour of Day</label>
+          <select id="hour">
+            <option value="0">00:00</option><option value="1">01:00</option>
+            <option value="2">02:00</option><option value="3">03:00</option>
+            <option value="4">04:00</option><option value="5">05:00</option>
+            <option value="6">06:00</option><option value="7">07:00</option>
+            <option value="8">08:00</option><option value="9">09:00</option>
+            <option value="10">10:00</option><option value="11">11:00</option>
+            <option value="12" selected>12:00</option>
+            <option value="13">13:00</option><option value="14">14:00</option>
+            <option value="15">15:00</option><option value="16">16:00</option>
+            <option value="17">17:00</option><option value="18">18:00</option>
+            <option value="19">19:00</option><option value="20">20:00</option>
+            <option value="21">21:00</option><option value="22">22:00</option>
+            <option value="23">23:00</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="month">Month</label>
+          <select id="month">
+            <option value="1">January</option><option value="2">February</option>
+            <option value="3">March</option><option value="4">April</option>
+            <option value="5">May</option><option value="6" selected>June</option>
+            <option value="7">July</option><option value="8">August</option>
+            <option value="9">September</option><option value="10">October</option>
+            <option value="11">November</option><option value="12">December</option>
+          </select>
+        </div>
+        <button class="btn-predict" id="predictBtn">Predict Rain</button>
+      </div>
+    </section>
+
+    <section class="card" style="grid-column: 1 / -1;">
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Analyzing cloud image...</p>
+      </div>
+
+      <div class="results" id="results">
+        <div id="resultLabel" class="result-badge"></div>
+        <div class="metric-group">
+          <div class="metric">
+            <span class="metric-label">Rain Probability</span>
+            <span class="metric-value" id="rainProb">0%</span>
+            <div class="bar-track">
+              <div class="bar-fill rain" id="confidenceBar"></div>
+            </div>
+          </div>
+          <div class="metric">
+            <span class="metric-label">No Rain Probability</span>
+            <span class="metric-value" id="noRainProb">0%</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Cloud Coverage</span>
+            <span class="metric-value" id="cloudCoverage">0%</span>
+            <div class="bar-track">
+              <div class="bar-fill cloud" id="cloudCoverageBar"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-download" id="downloadBtn" style="display:none">Download Report</button>
+      <div class="error" id="errorMsg"></div>
+    </section>
+  </main>
+
+  <footer>Powered by Random Forest &middot; CloudCast-based feature extraction</footer>
+
+  <script src="config.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
