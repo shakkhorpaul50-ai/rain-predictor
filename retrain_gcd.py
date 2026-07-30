@@ -1,126 +1,68 @@
-import sys, os, json, glob, random, time
+import sys, os, glob, random, time
 sys.path.insert(0, os.getcwd())
-
-import numpy as np
-import pandas as pd
-import cv2
-import joblib
+import numpy as np, cv2, joblib
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+import lightgbm as lgb
 
-from src.preprocessing import cloud_segmentation
-from src.features import extract_all_image_features
-from src.tabular import process_weather_data
+RAIN_CLASSES = {"6_cumulonimbus"}; SEED = 42; SIZE = 64
 
-RAIN_CLASSES = {"6_cumulonimbus"}
-N_SAMPLES = 3000
-SEED = 42
-random.seed(SEED)
-np.random.seed(SEED)
-
-def get_class_label(path):
+def get_label(path):
     parts = path.replace("\\", "/").split("/")
     for i, p in enumerate(parts):
         if p in ("train", "test") and i + 1 < len(parts):
             return 1 if parts[i+1] in RAIN_CLASSES else 0
     return 0
 
-def process_image(path):
-    try:
-        img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-        if img is None: return None
-        img = cv2.resize(img, (128, 128), interpolation=cv2.INTER_AREA)
-        img = cv2.GaussianBlur(img, (5, 5), 1.0)
-        img = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(img)
-        cloud_mask = cloud_segmentation(img)
-        feats = extract_all_image_features(img, cloud_mask)
-        return feats, float(np.mean(cloud_mask > 0))
-    except:
-        return None
-
-print("Collecting GCD files...")
-all_files = glob.glob("datasets/gcd/images/GCD/**/*.jpg", recursive=True)
-rain_files = [f for f in all_files if get_class_label(f) == 1]
-norain_files = [f for f in all_files if get_class_label(f) == 0]
-print(f"Total: rain={len(rain_files)}, norain={len(norain_files)}")
-
-n_per = N_SAMPLES // 2
-sampled = random.sample(rain_files, min(n_per, len(rain_files))) + \
-          random.sample(norain_files, min(n_per, len(norain_files)))
-random.shuffle(sampled)
-print(f"Processing {len(sampled)} images...")
-
-features, labels, weather_rows = [], [], []
-t0 = time.time()
-for idx, f in enumerate(sampled):
-    r = process_image(f)
-    if r is None: continue
-    feats, cov = r
-    label = get_class_label(f)
-    features.append(feats)
-    labels.append(label)
-    if label == 1:
-        temp = np.random.normal(18, 5)
-        humid = np.random.uniform(65, 100)
-        wind = np.random.exponential(8)
+def features(gray, hsv):
+    cloud = (gray > 128).astype(np.uint8)
+    cov = float(np.mean(cloud))
+    color_m = np.array([float(hsv[:,:,i].mean()) for i in range(3)])
+    color_s = np.array([float(np.std(hsv[:,:,i])) for i in range(3)])
+    cc = cv2.connectedComponentsWithStats(cloud, connectivity=8)[2]
+    if cc is not None and cc.shape[0] > 1:
+        areas = cc[1:, cv2.CC_STAT_AREA]
+        clust = np.array([len(areas), float(areas.mean()) if len(areas) > 0 else 0])
     else:
-        temp = np.random.normal(28, 5)
-        humid = np.random.uniform(30, 75)
-        wind = np.random.exponential(4)
-    weather_rows.append({
-        "temperature": float(temp), "humidity": float(humid),
-        "wind_speed": float(wind),
-        "hour": int(np.random.randint(0, 24)),
-        "month": int(np.random.randint(1, 13)),
-    })
-    if (idx+1) % 200 == 0:
-        elapsed = time.time() - t0
-        print(f"  {idx+1}/{len(sampled)} ({elapsed:.0f}s)")
+        clust = np.array([0, 0])
+    raw = gray.flatten().astype(np.float32) / 255.0
+    return np.concatenate([raw, color_m, color_s, np.array([cov, float(gray.mean()), float(np.std(gray))]), clust])
 
-image_features = np.array(features)
-labels = np.array(labels)
-print(f"Extracted {len(image_features)} samples, shape: {image_features.shape}")
-print(f"Class distribution: {np.bincount(labels)}")
+def main():
+    random.seed(SEED); np.random.seed(SEED)
+    files = glob.glob("datasets/gcd/images/GCD/**/*.jpg", recursive=True)
+    rain = [f for f in files if get_label(f) == 1]
+    norain = [f for f in files if get_label(f) == 0]
+    print(f"R={len(rain)} N={len(norain)}", flush=True)
+    r = random.sample(rain, min(5764, len(rain)))
+    n = random.sample(norain, min(5764, len(norain)))
+    sampled = r + n; random.shuffle(sampled)
+    print(f"{len(sampled)}...", flush=True)
+    X, y = [], []; t0 = time.time()
+    for idx, f in enumerate(sampled):
+        bgr = cv2.imread(f, cv2.IMREAD_COLOR)
+        if bgr is None: continue
+        bgr = cv2.resize(bgr, (SIZE, SIZE))
+        bgr = cv2.GaussianBlur(bgr, (5,5), 1.0)
+        gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+        gray = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8)).apply(gray)
+        hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
+        X.append(features(gray, hsv))
+        y.append(get_label(f))
+        if (idx + 1) % 1000 == 0:
+            print(f"  {idx+1}/{len(sampled)} ({time.time()-t0:.0f}s)", flush=True)
+    X = np.array(X); y = np.array(y)
+    print(f"S={X.shape} C={np.bincount(y)}", flush=True)
+    Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.2, random_state=SEED, stratify=y)
+    print("LGB...", flush=True)
+    m = lgb.LGBMClassifier(n_estimators=1000, learning_rate=0.05, num_leaves=31,
+        max_depth=6, feature_fraction=0.8, min_child_samples=10,
+        random_state=SEED, n_jobs=-1, verbosity=-1)
+    m.fit(Xtr, ytr)
+    p = m.predict(Xte); pb = m.predict_proba(Xte)[:, 1]
+    print(f"Acc={accuracy_score(yte, p):.4f} F1={f1_score(yte, p):.4f} AUC={roc_auc_score(yte, pb):.4f}", flush=True)
+    joblib.dump(m, os.path.join("backend", "models", "rain_model.joblib"))
+    print("OK", flush=True)
 
-print("Processing weather...")
-tabular_features, norm_params = process_weather_data(
-    pd.DataFrame(weather_rows),
-    hour_col="hour", month_col="month",
-    temp_col="temperature", humidity_col="humidity",
-    wind_col="wind_speed",
-)
-
-X = np.concatenate([image_features, tabular_features], axis=1)
-y = labels
-print(f"Combined: {X.shape}")
-
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=SEED, stratify=y)
-
-print("Training RF (500 trees)...")
-model = RandomForestClassifier(
-    n_estimators=500, max_depth=None, min_samples_split=2,
-    min_samples_leaf=1, random_state=SEED, n_jobs=-1)
-model.fit(X_train, y_train)
-
-y_pred = model.predict(X_test)
-y_prob = model.predict_proba(X_test)[:, 1]
-acc = accuracy_score(y_test, y_pred)
-f1 = f1_score(y_test, y_pred)
-roc_auc = roc_auc_score(y_test, y_prob)
-
-print(f"Accuracy: {acc:.4f}, F1: {f1:.4f}, ROC AUC: {roc_auc:.4f}")
-
-model_path = os.path.join("backend", "models", "rain_model.joblib")
-norm_path = os.path.join("backend", "models", "norm_params.json")
-joblib.dump(model, model_path)
-serialized = {}
-for k, v in norm_params.items():
-    if hasattr(v, "to_dict"):
-        serialized[k] = {str(kk): float(vv) for kk, vv in v.to_dict().items()}
-    elif isinstance(v, dict):
-        serialized[k] = {str(kk): float(vv) if hasattr(vv, "item") else vv for kk, vv in v.items()}
-with open(norm_path, "w") as f:
-    json.dump(serialized, f, indent=2)
-print("Saved to", model_path)
+if __name__ == "__main__":
+    main()
