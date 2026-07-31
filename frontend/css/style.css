@@ -301,6 +301,27 @@ main {
   color: var(--text);
 }
 
+.weight-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: #eff6ff;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  margin-left: 0.25rem;
+}
+
+.blend-formula {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-muted);
+}
+
 .hint {
   display: none;
   margin-top: 1rem;

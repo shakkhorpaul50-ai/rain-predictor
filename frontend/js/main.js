@@ -25,6 +25,9 @@ function getElements() {
         weatherProb: document.getElementById("weatherProb"),
         imageBar: document.getElementById("imageBar"),
         weatherBar: document.getElementById("weatherBar"),
+        imageWeight: document.getElementById("imageWeight"),
+        weatherWeight: document.getElementById("weatherWeight"),
+        blendFormula: document.getElementById("blendFormula"),
         hint: document.getElementById("hint"),
         errorMsg: document.getElementById("errorMsg"),
     };
@@ -137,6 +140,10 @@ function showResult(r, el) {
     el.cloudCoverageBar.style.width = `${r.cloud_coverage * 100}%`;
     const imgP = r.image_probability || 0;
     const weaP = r.weather_probability;
+    const wImg = r.ensemble_weight_image || 0.6;
+    const wWea = r.ensemble_weight_weather || 0.4;
+    el.imageWeight.textContent = `(${(wImg * 100).toFixed(0)}%)`;
+    el.weatherWeight.textContent = `(${(wWea * 100).toFixed(0)}%)`;
     el.imageProb.textContent = `${(imgP * 100).toFixed(1)}%`;
     el.imageBar.style.width = `${imgP * 100}%`;
     if (weaP === null || weaP === undefined) {
@@ -145,6 +152,13 @@ function showResult(r, el) {
     } else {
         el.weatherProb.textContent = `${(weaP * 100).toFixed(1)}%`;
         el.weatherBar.style.width = `${weaP * 100}%`;
+    }
+    if (weaP === null || weaP === undefined) {
+        el.blendFormula.textContent = "Weather model unavailable - result based on image model only.";
+    } else {
+        el.blendFormula.textContent =
+            `Final = ${(wImg * 100).toFixed(0)}% x ${(imgP * 100).toFixed(1)}% + ` +
+            `${(wWea * 100).toFixed(0)}% x ${(weaP * 100).toFixed(1)}% = ${(r.probability_rain * 100).toFixed(1)}%`;
     }
     if (r.hint) {
         el.hint.textContent = r.hint;

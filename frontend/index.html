@@ -175,19 +175,20 @@
         <div class="model-breakdown">
           <h3>Model Contributions</h3>
           <div class="metric">
-            <span class="metric-label">Image Model</span>
+            <span class="metric-label">Image Model <span id="imageWeight" class="weight-tag"></span></span>
             <span class="metric-value" id="imageProb">0%</span>
             <div class="bar-track">
               <div class="bar-fill image" id="imageBar"></div>
             </div>
           </div>
           <div class="metric">
-            <span class="metric-label">Weather Model</span>
+            <span class="metric-label">Weather Model <span id="weatherWeight" class="weight-tag"></span></span>
             <span class="metric-value" id="weatherProb">0%</span>
             <div class="bar-track">
               <div class="bar-fill weather" id="weatherBar"></div>
             </div>
           </div>
+          <div class="blend-formula" id="blendFormula"></div>
         </div>
         <div class="hint" id="hint"></div>
       </div>
