@@ -13,3 +13,5 @@ src/__pycache__/
 notebooks/
 output/
 data/
+datasets/
+backend/server*.log
