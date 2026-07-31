@@ -9,7 +9,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from model_api import RainPredictor
+from model_api import MultiModelRainPredictor
 
 app = FastAPI(title="Rain Prediction API")
 
@@ -21,7 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-predictor = RainPredictor()
+predictor = MultiModelRainPredictor()
 FRONTEND = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
 
 last_prediction = {}
@@ -38,6 +38,8 @@ async def predict(
     temperature: float = Form(20.0),
     humidity: float = Form(60.0),
     wind_speed: float = Form(5.0),
+    pressure: float = Form(1013.25),
+    district: str = Form("Dhaka"),
     hour: int = Form(12),
     month: int = Form(6),
 ):
@@ -47,6 +49,8 @@ async def predict(
         "temperature": temperature,
         "humidity": humidity,
         "wind_speed": wind_speed,
+        "pressure": pressure,
+        "district": district,
         "hour": hour,
         "month": month,
     }
@@ -86,6 +90,22 @@ def download_report():
     ax1.set_xlabel("Probability")
     for i, v in enumerate(probs):
         ax1.text(v + 0.02, i, f"{v*100:.1f}%", va="center", fontsize=11)
+    ax1.text(0.02, 1.06, "Model Contributions",
+             fontsize=10, fontweight="bold", color="#475569", transform=ax1.transAxes)
+    contrib = [
+        ("Image model", r.get("image_probability", 0.0),
+         r.get("ensemble_weight_image", 1.0)),
+        ("Weather model", r.get("weather_probability", 0.0),
+         r.get("ensemble_weight_weather", 0.0)),
+    ]
+    for i, (name, prob, weight) in enumerate(contrib):
+        y = 0.98 - i * 0.13
+        ax1.text(0.02, y, f"{name} ({weight*100:.0f}%)", fontsize=9,
+                 color="#64748b", transform=ax1.transAxes)
+        ax1.barh([y - 0.015], [prob], height=0.055, left=0.02,
+                 color=["#8b5cf6", "#0ea5e9"][i], transform=ax1.transAxes)
+        ax1.text(0.02 + prob, y - 0.015, f"{prob*100:.0f}%", fontsize=8,
+                 va="center", transform=ax1.transAxes, color="#334155")
 
     ax2.axis("off")
     ax2.set_title("Weather Conditions", fontsize=13, fontweight="bold")
@@ -95,13 +115,15 @@ def download_report():
         ("Temperature", f"{weather.get('temperature', '-')}\u00b0C"),
         ("Humidity", f"{weather.get('humidity', '-')}%"),
         ("Wind Speed", f"{weather.get('wind_speed', '-')} km/h"),
+        ("Pressure", f"{weather.get('pressure', '-')} hPa"),
+        ("District", f"{weather.get('district', '-')}"),
         ("Hour", f"{weather.get('hour', '-')}:00"),
         ("Month", f"{weather.get('month', '-')}"),
     ]
     for i, (k, v) in enumerate(items):
-        ax2.text(0.1, 0.85 - i * 0.12, k, fontsize=11, color="#64748b",
+        ax2.text(0.1, 0.85 - i * 0.1, k, fontsize=10, color="#64748b",
                  transform=ax2.transAxes)
-        ax2.text(0.9, 0.85 - i * 0.12, v, fontsize=11, fontweight="bold",
+        ax2.text(0.9, 0.85 - i * 0.1, v, fontsize=10, fontweight="bold",
                  ha="right", transform=ax2.transAxes, color="#1e293b")
 
     plt.tight_layout()

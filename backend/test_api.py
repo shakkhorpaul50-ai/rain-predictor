@@ -26,6 +26,8 @@ body.append(f"--{boundary}\r\nContent-Disposition: form-data; name=\"image\"; fi
 body.append(f"\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"temperature\"\r\n\r\n25".encode())
 body.append(f"\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"humidity\"\r\n\r\n70".encode())
 body.append(f"\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"wind_speed\"\r\n\r\n12".encode())
+body.append(f"\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"pressure\"\r\n\r\n1005".encode())
+body.append(f"\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"district\"\r\n\r\nDhaka".encode())
 body.append(f"\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"hour\"\r\n\r\n14".encode())
 body.append(f"\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"month\"\r\n\r\n7".encode())
 body.append(f"\r\n--{boundary}--\r\n".encode())

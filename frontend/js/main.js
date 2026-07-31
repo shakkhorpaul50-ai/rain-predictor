@@ -7,6 +7,8 @@ function getElements() {
         temperature: document.getElementById("temperature"),
         humidity: document.getElementById("humidity"),
         windSpeed: document.getElementById("windSpeed"),
+        pressure: document.getElementById("pressure"),
+        district: document.getElementById("district"),
         hour: document.getElementById("hour"),
         month: document.getElementById("month"),
         predictBtn: document.getElementById("predictBtn"),
@@ -19,6 +21,11 @@ function getElements() {
         cloudCoverage: document.getElementById("cloudCoverage"),
         confidenceBar: document.getElementById("confidenceBar"),
         cloudCoverageBar: document.getElementById("cloudCoverageBar"),
+        imageProb: document.getElementById("imageProb"),
+        weatherProb: document.getElementById("weatherProb"),
+        imageBar: document.getElementById("imageBar"),
+        weatherBar: document.getElementById("weatherBar"),
+        hint: document.getElementById("hint"),
         errorMsg: document.getElementById("errorMsg"),
     };
 }
@@ -62,9 +69,24 @@ function getWeatherData(el) {
         temperature: parseFloat(el.temperature.value) || 20,
         humidity: parseFloat(el.humidity.value) || 60,
         wind_speed: parseFloat(el.windSpeed.value) || 5,
+        pressure: parseFloat(el.pressure.value) || 1013,
+        district: el.district.value || "Dhaka",
         hour: parseInt(el.hour.value) || 12,
         month: parseInt(el.month.value) || 6,
     };
+}
+function validateWeather(el) {
+    const h = parseFloat(el.humidity.value);
+    const p = parseFloat(el.pressure.value);
+    if (h < 0 || h > 100) {
+        showError("Humidity must be between 0 and 100%.", el);
+        return false;
+    }
+    if (p < 950 || p > 1060) {
+        showError("Pressure looks unusual (typical range 950-1060 hPa).", el);
+        return false;
+    }
+    return true;
 }
 async function predict(el) {
     const file = el.imageInput.files?.[0];
@@ -73,6 +95,8 @@ async function predict(el) {
         return;
     }
     hideError(el);
+    if (!validateWeather(el))
+        return;
     el.results.classList.remove("visible");
     el.loading.classList.add("visible");
     el.predictBtn.disabled = true;
@@ -83,6 +107,8 @@ async function predict(el) {
         formData.append("temperature", String(weather.temperature));
         formData.append("humidity", String(weather.humidity));
         formData.append("wind_speed", String(weather.wind_speed));
+        formData.append("pressure", String(weather.pressure));
+        formData.append("district", String(weather.district));
         formData.append("hour", String(weather.hour));
         formData.append("month", String(weather.month));
         const res = await fetch(`${API_BASE}/api/predict`, { method: "POST", body: formData });
@@ -109,6 +135,21 @@ function showResult(r, el) {
     el.cloudCoverage.textContent = `${(r.cloud_coverage * 100).toFixed(1)}%`;
     el.confidenceBar.style.width = `${r.probability_rain * 100}%`;
     el.cloudCoverageBar.style.width = `${r.cloud_coverage * 100}%`;
+    const imgP = r.image_probability || 0;
+    const weaP = r.weather_probability;
+    el.imageProb.textContent = `${(imgP * 100).toFixed(1)}%`;
+    el.imageBar.style.width = `${imgP * 100}%`;
+    if (weaP === null || weaP === undefined) {
+        el.weatherProb.textContent = "N/A";
+        el.weatherBar.style.width = "0%";
+    } else {
+        el.weatherProb.textContent = `${(weaP * 100).toFixed(1)}%`;
+        el.weatherBar.style.width = `${weaP * 100}%`;
+    }
+    if (r.hint) {
+        el.hint.textContent = r.hint;
+        el.hint.classList.add("visible");
+    }
     el.results.classList.add("visible");
     el.downloadBtn.style.display = "block";
 }
