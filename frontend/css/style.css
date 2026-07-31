@@ -311,6 +311,13 @@ main {
   margin-left: 0.25rem;
 }
 
+.raw-note {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 0.25rem;
+}
+
 .blend-formula {
   margin-top: 0.75rem;
   padding: 0.6rem 0.75rem;

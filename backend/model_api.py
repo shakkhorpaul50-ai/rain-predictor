@@ -120,8 +120,16 @@ class MultiModelRainPredictor:
         means = meta["numeric_means"]
         stds = meta["numeric_stds"]
         district_map = meta["district_map"]
-        district = str(weather.get("district", "")).strip().title()
-        code = district_map.get(district, 0)
+        district = str(weather.get("district", "")).strip()
+        code = 0
+        if district in district_map:
+            code = district_map[district]
+        else:
+            d_lower = district.lower()
+            for name, c in district_map.items():
+                if name.lower() == d_lower:
+                    code = c
+                    break
         feats = [
             (float(weather.get("temperature", 25.0)) - means["temperature_2m"]) / stds["temperature_2m"],
             (float(weather.get("humidity", 60.0)) - means["relative_humidity_2m"]) / stds["relative_humidity_2m"],
